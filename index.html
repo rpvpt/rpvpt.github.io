@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#040506">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RPvpt">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>RPvpt</title>
+<style>
+:root{
+  --canvas:#040506; --card:#07080A; --recessed:#111214;
+  --smoke:#6A6B6C; --ash:#9C9C9D; --mist:#E6E6E6; --iron:#454647;
+  --slate:#2F3031; --border:#363739; --white:#FFFFFF; --coral:#FF6363;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--canvas);-webkit-text-size-adjust:100%}
+body{
+  margin:0 auto;max-width:520px;min-height:100vh;background:var(--canvas);color:var(--white);
+  font-family:var(--sans);
+  padding:calc(env(safe-area-inset-top) + 16px) calc(env(safe-area-inset-right) + 20px)
+          calc(env(safe-area-inset-bottom) + 32px) calc(env(safe-area-inset-left) + 20px);
+}
+header{display:flex;align-items:center;gap:10px;margin-top:8px}
+header svg{width:32px;height:32px}
+header b{font-weight:500;font-size:20px}
+.eyebrow{
+  font:500 11px/1.2 var(--mono);letter-spacing:.07em;color:var(--ash);
+  text-transform:uppercase;margin:36px 0 12px;
+}
+h1{font-weight:400;font-size:32px;line-height:1.15;margin:8px 0 0;letter-spacing:.004em}
+.card{background:var(--card);border:1px solid var(--slate);border-radius:16px;padding:12px}
+.muted{color:var(--smoke);font-size:12px;line-height:1.4}
+
+/* --- Сейчас --- */
+.now{padding:20px}
+.now-label{display:flex;align-items:center;gap:8px;font:500 11px/1.2 var(--mono);letter-spacing:.07em;color:var(--ash);text-transform:uppercase}
+.dot{width:6px;height:6px;border-radius:50%;background:transparent;flex:none}
+.dot.on{background:var(--coral)}
+.now-title{font-weight:500;font-size:20px;line-height:1.25;margin-top:10px}
+.now-timer{font:400 40px/1.1 var(--mono);letter-spacing:.01em;margin-top:12px;font-variant-numeric:tabular-nums}
+.now-line{color:var(--smoke);font-size:13px;line-height:1.4;margin-top:8px}
+
+/* --- Барабан группы --- */
+.wheel{position:relative;height:220px;border-radius:12px;overflow:hidden}
+.wheel .band{
+  position:absolute;left:4px;right:4px;top:88px;height:44px;border-radius:8px;
+  background:var(--recessed);border:1px solid var(--slate);pointer-events:none;
+}
+.wheel ul{
+  position:relative;list-style:none;margin:0;padding:88px 0;height:220px;overflow-y:scroll;
+  scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  -webkit-mask-image:linear-gradient(transparent 0,#000 28%,#000 72%,transparent 100%);
+  mask-image:linear-gradient(transparent 0,#000 28%,#000 72%,transparent 100%);
+}
+.wheel ul::-webkit-scrollbar{display:none}
+.wheel li{
+  height:44px;display:flex;align-items:center;justify-content:center;
+  scroll-snap-align:center;font:500 22px/1 var(--sans);color:var(--ash);
+  cursor:pointer;user-select:none;-webkit-user-select:none;
+}
+.wheel li.sel{color:var(--white)}
+
+/* --- Неделя --- */
+.chips{display:grid;gap:6px}
+.chip{
+  border:1px solid var(--slate);background:transparent;color:var(--ash);border-radius:8px;
+  padding:10px 0;font:500 12px/1.35 var(--sans);cursor:pointer;
+}
+.chip.on{background:var(--mist);border-color:var(--mist);color:var(--iron)}
+.lessons{min-height:72px;touch-action:pan-y}
+.lessons.slide-l{animation:sl .18s ease-out}
+.lessons.slide-r{animation:sr .18s ease-out}
+@keyframes sl{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes sr{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+.row{display:flex;align-items:center;padding:12px;border-radius:8px}
+.row.active{background:var(--recessed)}
+.row .dot{margin-right:10px}
+.row .time{width:92px;flex:none;font:400 12px/1.2 var(--mono);color:var(--ash)}
+.row .what{flex:1;min-width:0}
+.row .subj{font-weight:500;font-size:14px;line-height:1.3}
+.row .room{color:var(--smoke);font-size:12px;margin-top:2px}
+.empty{padding:12px;color:var(--smoke);font-size:14px}
+
+/* --- Кнопки --- */
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn{
+  display:block;width:100%;padding:14px 12px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--ash);font:500 13px/1.2 var(--sans);cursor:pointer;
+}
+.btn:active{background:var(--recessed)}
+
+footer{margin-top:40px;text-align:center;font:400 12px/1.4 var(--mono);color:var(--smoke)}
+.hint{margin-top:24px;display:none;gap:12px;align-items:flex-start}
+.hint.show{display:flex}
+.hint p{margin:0;flex:1;color:var(--ash);font-size:13px;line-height:1.4}
+.hint button{background:none;border:0;color:var(--smoke);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);
+  background:var(--mist);color:var(--iron);padding:10px 16px;border-radius:8px;
+  font:500 13px/1.2 var(--sans);opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center
+}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M14.07,4.27 A8,8 0 1,1 9.93,4.27" fill="none" stroke="#FF6363" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="1.8" fill="#FF6363"/>
+  </svg>
+  <b>RPvpt</b>
+</header>
+
+<div class="card hint" id="iosHint">
+  <p>Чтобы открывать как приложение: нажми «Поделиться» в Safari и выбери «На экран “Домой”».</p>
+  <button id="hintClose" aria-label="Закрыть">×</button>
+</div>
+
+<div class="eyebrow" id="nowEyebrow">Сейчас</div>
+<div class="card now" id="now"></div>
+
+<div class="eyebrow">Группа</div>
+<h1>Твоя группа</h1>
+<div class="card" style="margin-top:20px">
+  <div class="wheel"><div class="band"></div><ul id="wheel"></ul></div>
+</div>
+
+<div class="eyebrow" id="weekEyebrow">Расписание</div>
+<div class="chips" id="chips"></div>
+<div class="eyebrow" id="dayTitle" style="margin-top:20px"></div>
+<div class="card lessons" id="lessons"></div>
+<div class="btns">
+  <button class="btn" id="shareDay">Отправить день</button>
+  <button class="btn" id="shareWeek">Отправить неделю</button>
+</div>
+
+<div class="eyebrow">Источник расписания</div>
+<div class="muted" id="source"></div>
+
+<footer>RPvpt web v1.0</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= утилиты ================= */
+const $ = s => document.querySelector(s);
+const LS = {
+  get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+};
+const pad = n => String(n).padStart(2, '0');
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+const DAY_SHORT = ['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'];            // по Date.getDay()
+const DAY_FULL  = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+const MONTH_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const isoToDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+const dateToIso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const toMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+const fmtMin = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+
+let toastTimer;
+function toast(text){
+  const t = $('#toast'); t.textContent = text; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ================= чтение Excel без библиотек ================= */
+// .xlsx это zip с XML внутри. Распаковываем встроенным в браузер DecompressionStream.
+async function unzip(buf){
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Это не Excel-файл (.xlsx)');
+  const count = dv.getUint16(eocd + 10, true), cdOff = dv.getUint32(eocd + 16, true);
+  const files = {}; let p = cdOff;
+  for (let i = 0; i < count; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    const lho = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nlen));
+    files[name] = { method, csize, lho };
+    p += 46 + nlen + elen + clen;
+  }
+  return {
+    has: name => !!files[name],
+    names: () => Object.keys(files),
+    async text(name){
+      const f = files[name]; if (!f) return null;
+      const nlen = dv.getUint16(f.lho + 26, true), elen = dv.getUint16(f.lho + 28, true);
+      const start = f.lho + 30 + nlen + elen, data = u8.subarray(start, start + f.csize);
+      let out;
+      if (f.method === 0) out = data;
+      else if (f.method === 8) {
+        if (typeof DecompressionStream === 'undefined') throw new Error('Браузер слишком старый: обнови iOS или Safari');
+        const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        out = new Uint8Array(await new Response(stream).arrayBuffer());
+      } else throw new Error('Неподдерживаемый формат файла');
+      return new TextDecoder('utf-8').decode(out);
+    }
+  };
+}
+const xml = s => new DOMParser().parseFromString(s, 'application/xml');
+const tags = (root, name) => Array.from(root.getElementsByTagNameNS('*', name));
+const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+async function readSheet(buf){
+  const zip = await unzip(buf);
+  // общие строки
+  const shared = [];
+  const ssText = await zip.text('xl/sharedStrings.xml');
+  if (ssText) {
+    for (const si of tags(xml(ssText), 'si')) {
+      shared.push(tags(si, 't').filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join(''));
+    }
+  }
+  // путь к первому листу
+  let sheetPath = 'xl/worksheets/sheet1.xml';
+  const wbText = await zip.text('xl/workbook.xml'), relText = await zip.text('xl/_rels/workbook.xml.rels');
+  if (wbText && relText) {
+    const first = tags(xml(wbText), 'sheet')[0];
+    const rid = first && (first.getAttributeNS(REL_NS, 'id') || first.getAttribute('r:id'));
+    const rel = tags(xml(relText), 'Relationship').find(r => r.getAttribute('Id') === rid);
+    if (rel) {
+      const t = rel.getAttribute('Target');
+      sheetPath = t.startsWith('/') ? t.slice(1) : 'xl/' + t;
+    }
+  }
+  const sheetText = await zip.text(sheetPath);
+  if (!sheetText) throw new Error('В файле нет листа с расписанием');
+
+  const cells = new Map(); let maxR = 0, maxC = 0;
+  for (const c of tags(xml(sheetText), 'c')) {
+    const ref = c.getAttribute('r') || '', type = c.getAttribute('t') || '';
+    const m = /^([A-Z]+)(\d+)$/.exec(ref); if (!m) continue;
+    let col = 0; for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64);
+    const row = Number(m[2]);
+    let val = null;
+    if (type === 'inlineStr') val = tags(c, 't').map(t => t.textContent).join('');
+    else {
+      const v = tags(c, 'v')[0]; const raw = v ? v.textContent.trim() : '';
+      val = type === 's' ? (shared[parseInt(raw, 10)] ?? null) : raw;
+    }
+    if (val != null && String(val).trim() !== '') {
+      cells.set(row * 65536 + col, String(val).trim());
+      if (row > maxR) maxR = row; if (col > maxC) maxC = col;
+    }
+  }
+  return { get: (r, c) => cells.get(r * 65536 + c) ?? null, maxR, maxC };
+}
+
+/* ================= звонки (с 01.09.2026) ================= */
+const hm = (h, m) => h * 60 + m;
+const TUE = [[1,2,hm(8,30),hm(10,0)], [3,3,hm(10,10),hm(10,55)], [4,5,hm(11,25),hm(12,55)], [6,6,hm(13,15),hm(14,0)]];
+const BELLS = {
+  'Понедельник': [[1,2,hm(9,20),hm(10,50)], [3,4,hm(11,20),hm(12,50)], [5,6,hm(13,10),hm(14,40)]],
+  'Вторник': TUE,
+  'Среда': TUE.concat([[7,8,hm(14,10),hm(15,40)]]),
+  'Четверг': TUE.concat([[7,7,hm(14,10),hm(14,40)]]),
+  'Пятница': TUE,
+  'Суббота': [[1,2,hm(8,30),hm(10,0)], [3,4,hm(10,10),hm(11,40)]]
+};
+const TALK = { start: hm(8,30), end: hm(9,15), name: 'Разговоры о важном' };
+
+/* ================= разбор расписания ================= */
+async function parseWorkbook(buf){
+  const sh = await readSheet(buf);
+  let groupRow = -1;
+  for (let r = 1; r <= 30; r++) if (sh.get(r, 4) === 'Группа:') { groupRow = r; break; }
+  if (groupRow < 0) throw new Error('Не найдена строка «Группа:». Это точно расписание колледжа?');
+
+  let week = '';
+  for (let r = 1; r < groupRow; r++) {
+    const v = sh.get(r, 1);
+    if (v && /^\d{2}\.\d{2}\.\d{4}-\d{2}\.\d{2}\.\d{4}$/.test(v)) week = v;
+  }
+  const groups = [];
+  for (let c = 5; c <= sh.maxC; c++) { const v = sh.get(groupRow, c); if (v) groups.push([c, v.replace(/\.0$/, '')]); }
+  if (!groups.length) throw new Error('В файле не найдены номера групп');
+  const talk = new Set(groups.filter(([c]) => sh.get(groupRow + 1, c) === TALK.name).map(([, g]) => g));
+
+  const raw = {}; groups.forEach(([, g]) => raw[g] = {});
+  let date = null, dayName = null, r = groupRow + 1;
+  while (r <= sh.maxR) {
+    const a = sh.get(r, 1);
+    if (a) {
+      const m = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\S+)/.exec(a);
+      if (m) { date = `${m[3]}-${m[2]}-${m[1]}`; dayName = cap(m[4].toLowerCase()); }
+    }
+    const b = sh.get(r, 2);
+    if (b && /^\d+$/.test(b) && date && dayName) {
+      for (const [col, g] of groups) {
+        const subj = sh.get(r, col); if (!subj) continue;
+        (raw[g][date] ||= { day: dayName, l: [] }).l.push({
+          n: Number(b), subject: subj, room: sh.get(r, col + 3), teacher: sh.get(r + 1, col)
+        });
+      }
+      r += 2; continue;
+    }
+    r += 1;
+  }
+
+  const out = {}; let count = 0;
+  for (const [g, days] of Object.entries(raw)) {
+    out[g] = {};
+    for (const [d, dd] of Object.entries(days)) {
+      const bells = BELLS[dd.day]; if (!bells) continue;
+      const slots = {};
+      for (const [a, b, s, e] of bells) {
+        const n = b - a + 1, step = (e - s) / n;
+        for (let i = 0; i < n; i++) slots[a + i] = { s: Math.round(s + i * step), e: Math.round(s + (i + 1) * step), blk: a * 100 + b };
+      }
+      const ents = []; let cur = null;
+      for (const les of dd.l.slice().sort((x, y) => x.n - y.n)) {
+        const sl = slots[les.n];
+        if (!sl) { cur = null; continue; }
+        if (cur && cur.blk === sl.blk && cur.subject === les.subject && cur.room === les.room &&
+            cur.teacher === les.teacher && cur.last + 1 === les.n) { cur.e = sl.e; cur.last = les.n; }
+        else { cur = { blk: sl.blk, subject: les.subject, room: les.room, teacher: les.teacher, last: les.n, s: sl.s, e: sl.e }; ents.push(cur); }
+      }
+      const lessons = [];
+      if (dd.day === 'Понедельник' && talk.has(g)) lessons.push({ start: fmtMin(TALK.start), end: fmtMin(TALK.end), subject: TALK.name, room: null, teacher: null });
+      for (const e of ents) lessons.push({ start: fmtMin(e.s), end: fmtMin(e.e), subject: e.subject, room: e.room, teacher: e.teacher });
+      count += lessons.length;
+      out[g][d] = { day: dd.day, lessons };
+    }
+  }
+  if (!count) throw new Error('В файле не нашлось ни одного занятия');
+  return { week, groups: out };
+}
+
+/* ================= состояние ================= */
+const state = { data: null, group: null, sel: 0, dates: [], loadedAt: 0, note: '' };
+
+function weekDates(data){
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})-(\d{2})\.(\d{2})\.(\d{4})$/.exec(data.week || '');
+  const res = [];
+  if (m) {
+    let d = new Date(+m[3], +m[2] - 1, +m[1]); const end = new Date(+m[6], +m[5] - 1, +m[4]);
+    while (d <= end && res.length < 7) { res.push(dateToIso(d)); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); }
+    if (res.length) return res;
+  }
+  const all = new Set();
+  Object.values(data.groups).forEach(days => Object.keys(days).forEach(k => all.add(k)));
+  return Array.from(all).sort();
+}
+const lessonsFor = (g, iso) => (state.data.groups[g] && state.data.groups[g][iso]) ? state.data.groups[g][iso].lessons : null;
+
+function setData(data){
+  state.data = data;
+  state.dates = weekDates(data);
+  const groups = Object.keys(data.groups).sort();
+  if (!state.group || !groups.includes(state.group)) state.group = LS.get('rpvpt.group');
+  if (!state.group || !groups.includes(state.group)) state.group = groups[0];
+  const today = dateToIso(new Date());
+  const i = state.dates.indexOf(today);
+  state.sel = i >= 0 ? i : 0;
+}
+
+/* ================= «Сейчас» ================= */
+function statusAt(nowSec, lessons){
+  const L = lessons.map(l => ({ ...l, s: toMin(l.start) * 60, e: toMin(l.end) * 60 })).sort((a, b) => a.s - b.s);
+  if (!L.length) return { t: 'none' };
+  if (nowSec < L[0].s) return { t: 'before', next: L[0], left: L[0].s - nowSec };
+  for (let i = 0; i < L.length; i++) {
+    const l = L[i], n = L[i + 1];
+    if (nowSec >= l.s && nowSec < l.e) return { t: 'in', cur: l, next: n, left: l.e - nowSec };
+    if (n && nowSec >= l.e && nowSec < n.s) return { t: 'break', next: n, left: n.s - nowSec, total: n.s - l.e };
+  }
+  return { t: 'done' };
+}
+function fmtLeft(sec){
+  sec = Math.max(0, sec);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+const roomText = l => l.room ? 'каб. ' + l.room : '';
+
+function renderNow(){
+  const box = $('#now'); box.replaceChildren();
+  const now = new Date(), nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const lessons = state.data ? lessonsFor(state.group, dateToIso(now)) : null;
+  const st = lessons && lessons.length ? statusAt(nowSec, lessons) : { t: 'none' };
+
+  const label = el('div', 'now-label'); const dot = el('span', 'dot'); label.append(dot);
+  const lt = el('span'); label.append(lt);
+  const title = el('div', 'now-title'), timer = el('div', 'now-timer mono'), line = el('div', 'now-line');
+  let showTimer = true;
+
+  if (st.t === 'before') { lt.textContent = 'До первой пары'; title.textContent = st.next.subject; timer.textContent = fmtLeft(st.left); line.textContent = roomText(st.next); }
+  else if (st.t === 'in') {
+    dot.classList.add('on'); lt.textContent = 'Сейчас · до конца'; title.textContent = st.cur.subject; timer.textContent = fmtLeft(st.left);
+    line.textContent = st.next ? 'Дальше: ' + st.next.subject + (st.next.room ? ', ' + roomText(st.next) : '') : 'Это последнее занятие на сегодня';
+  } else if (st.t === 'break') {
+    lt.textContent = (st.total >= 20 * 60 ? 'Большая перемена' : 'Перемена') + ' · до начала';
+    title.textContent = 'Дальше: ' + st.next.subject; timer.textContent = fmtLeft(st.left);
+    line.textContent = [roomText(st.next), 'всего ' + Math.round(st.total / 60) + ' мин'].filter(Boolean).join(' · ');
+  } else if (st.t === 'done') { lt.textContent = 'Сегодня'; title.textContent = 'Занятия закончились'; showTimer = false; }
+  else { lt.textContent = 'Сегодня'; title.textContent = state.data ? 'Занятий нет' : 'Загружаю расписание…'; showTimer = false; }
+
+  box.append(label, title); if (showTimer) box.append(timer); if (line.textContent) box.append(line);
+}
+
+/* ================= барабан группы ================= */
+const ITEM = 44;
+let wheelItems = [], wheelTimer = null, wheelBusy = false;
+function buildWheel(){
+  const ul = $('#wheel'); ul.replaceChildren(); wheelItems = [];
+  const groups = Object.keys(state.data.groups).sort();
+  groups.forEach((g, i) => {
+    const li = el('li', '', g);
+    li.addEventListener('click', () => ul.scrollTo({ top: i * ITEM, behavior: 'smooth' }));
+    ul.append(li); wheelItems.push(li);
+  });
+  wheelBusy = true;
+  ul.scrollTop = Math.max(0, groups.indexOf(state.group)) * ITEM;
+  paintWheel();
+  requestAnimationFrame(() => { wheelBusy = false; });
+}
+function paintWheel(){
+  const pos = $('#wheel').scrollTop / ITEM;
+  wheelItems.forEach((li, i) => {
+    const d = Math.abs(i - pos);
+    li.style.opacity = String(Math.max(0.18, 1 - d * 0.32));
+    li.style.transform = 'scale(' + Math.max(0.8, 1 - d * 0.07) + ')';
+    li.classList.toggle('sel', d < 0.5);
+  });
+}
+$('#wheel').addEventListener('scroll', () => {
+  paintWheel();
+  if (wheelBusy) return;
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(() => {
+    const groups = Object.keys(state.data.groups).sort();
+    const idx = Math.max(0, Math.min(groups.length - 1, Math.round($('#wheel').scrollTop / ITEM)));
+    if (groups[idx] !== state.group) {
+      state.group = groups[idx]; LS.set('rpvpt.group', state.group);
+      if (navigator.vibrate) navigator.vibrate(8);
+      renderDay(); renderNow();
+    }
+  }, 120);
+}, { passive: true });
+
+/* ================= неделя ================= */
+function renderChips(){
+  const box = $('#chips'); box.replaceChildren();
+  box.style.gridTemplateColumns = 'repeat(' + Math.max(1, state.dates.length) + ', 1fr)';
+  state.dates.forEach((iso, i) => {
+    const d = isoToDate(iso);
+    const b = el('button', 'chip' + (i === state.sel ? ' on' : ''));
+    b.append(DAY_SHORT[d.getDay()], document.createElement('br'), String(d.getDate()));
+    b.addEventListener('click', () => selectDay(i));
+    box.append(b);
+  });
+}
+function renderDay(){
+  const box = $('#lessons'); box.replaceChildren();
+  if (!state.dates.length) { box.append(el('div', 'empty', 'В файле нет дат расписания')); $('#dayTitle').textContent = ''; return; }
+  const iso = state.dates[state.sel], d = isoToDate(iso), isToday = iso === dateToIso(new Date());
+  $('#dayTitle').textContent = (DAY_FULL[d.getDay()] + ', ' + d.getDate() + ' ' + MONTH_GEN[d.getMonth()] + (isToday ? ' · сегодня' : '')).toUpperCase();
+  const lessons = lessonsFor(state.group, iso);
+  if (!lessons || !lessons.length) { box.append(el('div', 'empty', 'Занятий нет')); return; }
+  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+  for (const l of lessons) {
+    const active = isToday && nowMin >= toMin(l.start) && nowMin < toMin(l.end);
+    const row = el('div', 'row' + (active ? ' active' : ''));
+    row.append(el('span', 'dot' + (active ? ' on' : '')), el('span', 'time', l.start + '–' + l.end));
+    const what = el('div', 'what'); what.append(el('div', 'subj', l.subject));
+    if (l.room) what.append(el('div', 'room', 'каб. ' + l.room));
+    row.append(what); box.append(row);
+  }
+}
+function selectDay(i){
+  if (!state.dates.length) return;
+  i = Math.max(0, Math.min(state.dates.length - 1, i)); if (i === state.sel) return;
+  const dir = i > state.sel ? 'l' : 'r'; state.sel = i;
+  renderChips(); renderDay();
+  const box = $('#lessons'); box.classList.remove('slide-l', 'slide-r'); void box.offsetWidth; box.classList.add('slide-' + dir);
+}
+// свайп по карточке
+(() => {
+  const box = $('#lessons'); let x0 = 0, y0 = 0;
+  box.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  box.addEventListener('touchend', e => {
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) selectDay(state.sel + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+})();
+
+/* ================= отправить ================= */
+function dayText(iso){
+  const d = isoToDate(iso), ls = lessonsFor(state.group, iso);
+  let s = cap(DAY_FULL[d.getDay()]) + ', ' + d.getDate() + ' ' + MONTH_GEN[d.getMonth()] + '\n';
+  if (!ls || !ls.length) return s + 'Занятий нет';
+  return s + ls.map(l => l.start + '–' + l.end + '  ' + l.subject + (l.room ? ' (каб. ' + l.room + ')' : '')).join('\n');
+}
+async function share(text){
+  try { if (navigator.share) { await navigator.share({ text }); return; } }
+  catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text); toast('Скопировано'); } catch (e) { toast('Не удалось отправить'); }
+}
+$('#shareDay').addEventListener('click', () => state.dates.length && share('Группа ' + state.group + '\n' + dayText(state.dates[state.sel])));
+$('#shareWeek').addEventListener('click', () => {
+  const parts = state.dates.filter(iso => (lessonsFor(state.group, iso) || []).length).map(dayText);
+  share('Группа ' + state.group + ' · неделя ' + state.data.week + '\n\n' + parts.join('\n\n'));
+});
+
+/* ================= загрузка файла ================= */
+function renderSource(){
+  const s = $('#source'); if (!state.data) { s.textContent = state.note; return; }
+  let t = 'Неделя ' + state.data.week;
+  if (state.loadedAt) { const d = new Date(state.loadedAt); t += ' · обновлено ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + ' в ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  s.textContent = t + (state.note ? '\n' + state.note : '');
+  s.style.whiteSpace = 'pre-line';
+}
+function renderAll(){
+  $('#weekEyebrow').textContent = 'Расписание' + (state.data && state.data.week ? ' · ' + state.data.week : '');
+  renderNow(); renderChips(); renderDay(); renderSource();
+}
+let lastTry = 0;
+async function load(){
+  lastTry = Date.now();
+  try {
+    const res = await fetch('schedule.xlsx?ts=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('Сервер ответил ' + res.status);
+    const data = await parseWorkbook(await res.arrayBuffer());
+    const prevGroup = state.group;
+    setData(data); if (prevGroup) state.group = prevGroup, setData(data);
+    state.loadedAt = Date.now(); state.note = '';
+    LS.set('rpvpt.data', JSON.stringify(data)); LS.set('rpvpt.loadedAt', String(state.loadedAt));
+    buildWheel(); renderAll();
+  } catch (e) {
+    state.note = state.data ? 'Нет связи, показано сохранённое расписание.' : 'Не удалось загрузить расписание: ' + (e.message || e);
+    renderSource(); renderNow();
+  }
+}
+
+/* ================= запуск ================= */
+(function init(){
+  try {
+    const cached = JSON.parse(LS.get('rpvpt.data') || 'null');
+    if (cached && cached.groups) { setData(cached); state.loadedAt = Number(LS.get('rpvpt.loadedAt')) || 0; buildWheel(); }
+  } catch (e) {}
+  renderAll(); load();
+
+  let lastDay = dateToIso(new Date());
+  setInterval(() => {
+    const today = dateToIso(new Date());
+    if (today !== lastDay && state.data) { lastDay = today; setData(state.data); renderAll(); } else renderNow();
+  }, 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { renderAll(); if (Date.now() - lastTry > 10 * 60 * 1000) load(); }
+  });
+
+  // подсказка «как поставить на экран Домой» для iPhone
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  if (ios && !standalone && !LS.get('rpvpt.hintClosed')) $('#iosHint').classList.add('show');
+  $('#hintClose').addEventListener('click', () => { $('#iosHint').classList.remove('show'); LS.set('rpvpt.hintClosed', '1'); });
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+})();
+</script>
+</body>
+</html>
